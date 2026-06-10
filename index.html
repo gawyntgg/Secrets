@@ -1,0 +1,659 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Noah And Elza</title>
+    <style>
+        :root {
+            --bg-color: #1e1e24;
+            --panel-bg: #2b2b36;
+            --accent: #fca311;
+            --text-main: #f5f5f5;
+            --text-muted: #aaa;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            flex-direction: row;
+        }
+
+        /* --- Left Side: Main Game --- */
+        #game-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-right: 4px solid #333;
+            position: relative;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            color: var(--accent);
+            font-size: 3.5rem;
+            margin-bottom: 5px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-align: center;
+        }
+
+        #score-board {
+            text-align: center;
+            margin-bottom: 30px;
+            background: rgba(0,0,0,0.2);
+            padding: 20px 50px;
+            border-radius: 15px;
+            border: 1px solid #444;
+            width: 100%;
+            max-width: 400px;
+            box-sizing: border-box;
+        }
+
+        #points {
+            font-size: 4rem;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(252, 163, 17, 0.5);
+            word-break: break-word;
+        }
+
+        .stats-display {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            margin: 5px 0;
+        }
+
+        #cookie {
+            font-size: 160px;
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.05s ease;
+            filter: drop-shadow(0 0 20px rgba(252, 163, 17, 0.2));
+            outline: none;
+            margin-bottom: 20px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        #cookie:active, #cookie.active {
+            transform: scale(0.85);
+            filter: drop-shadow(0 0 40px rgba(252, 163, 17, 0.8));
+        }
+
+        /* --- Mini-Games Section --- */
+        #minigame-hub {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: var(--panel-bg);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #444;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .minigame-btn {
+            background-color: #3f3f4e;
+            color: white;
+            border: 2px solid var(--accent);
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+            flex: 1;
+        }
+
+        .minigame-btn:hover:not(:disabled) {
+            background-color: var(--accent);
+            color: #000;
+        }
+
+        .minigame-btn:disabled {
+            border-color: #555;
+            color: #777;
+            cursor: not-allowed;
+            background-color: #2b2b36;
+        }
+
+        /* --- Right Side: The Upgrades --- */
+        #shop-area {
+            width: 450px;
+            background-color: var(--panel-bg);
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: inset 10px 0 20px rgba(0,0,0,0.2);
+            box-sizing: border-box;
+        }
+
+        #shop-area h2 {
+            text-align: center;
+            color: var(--accent);
+            border-bottom: 2px solid #444;
+            padding-bottom: 10px;
+            margin-top: 0;
+            font-size: 2rem;
+        }
+
+        .upgrade-btn {
+            background-color: #3f3f4e;
+            border: 2px solid #555;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s;
+            width: 100%;
+            box-sizing: border-box;
+            text-align: left;
+        }
+
+        .upgrade-btn:hover:not(.disabled) {
+            background-color: #4f4f62;
+            transform: scale(1.02);
+            border-color: var(--accent);
+        }
+
+        .upgrade-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background-color: #2b2b36;
+        }
+
+        .upgrade-info { text-align: left; flex: 1; }
+        .upgrade-name { font-size: 1.3rem; font-weight: bold; margin-bottom: 5px; color: #fff;}
+        .upgrade-desc { font-size: 0.9rem; color: #00ff88; }
+        .upgrade-cost { font-weight: bold; color: var(--accent); font-size: 1.1rem; margin-top: 5px;}
+        .upgrade-count { font-size: 2rem; color: #888; font-weight: bold; margin-left: 15px; width: 40px; text-align: right;}
+
+        /* --- Modal (Popups for Minigames) --- */
+        #modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .modal-content {
+            background: var(--panel-bg);
+            padding: 30px;
+            border-radius: 15px;
+            border: 2px solid var(--accent);
+            text-align: center;
+            width: 600px;
+            max-width: 100%;
+            position: relative;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        .modal-content h2 { margin-top: 0; color: var(--accent); font-size: 2rem;}
+        
+        #rain-area {
+            width: 100%;
+            height: 300px;
+            background: #111;
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+            border: 1px solid #444;
+        }
+
+        .falling-cookie {
+            position: absolute;
+            font-size: 40px;
+            cursor: pointer;
+            user-select: none;
+            animation: fall linear forwards;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        @keyframes fall {
+            from { top: -50px; }
+            to { top: 350px; }
+        }
+
+        #math-input {
+            font-size: 2rem;
+            padding: 10px;
+            width: 100%;
+            max-width: 200px;
+            text-align: center;
+            border-radius: 10px;
+            border: none;
+            margin: 20px 0;
+            box-sizing: border-box;
+        }
+
+        .close-btn {
+            background: #ff4444;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        /* ==========================================
+           MOBILE RESPONSIVENESS (Max Width 768px)
+           ========================================== */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+                height: auto;
+                overflow-y: auto;
+            }
+
+            #game-area {
+                min-height: 100vh;
+                border-right: none;
+                border-bottom: 4px solid #333;
+                justify-content: flex-start;
+                padding-top: 40px;
+            }
+
+            h1 { font-size: 2.5rem; }
+            #points { font-size: 3rem; }
+            #cookie { font-size: 120px; margin-top: 20px; }
+
+            #minigame-hub {
+                position: static;
+                width: 100%;
+                max-width: 400px;
+                flex-direction: column;
+                margin-top: 30px;
+                box-sizing: border-box;
+            }
+
+            .minigame-btn { width: 100%; }
+
+            #shop-area {
+                width: 100%;
+                height: auto;
+                box-shadow: none;
+            }
+
+            .modal-content { padding: 20px; }
+            .modal-content h2 { font-size: 1.5rem; }
+            #math-problem { font-size: 2.5rem !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-area">
+        <h1>Gawynt Cutter</h1>
+        
+        <div id="score-board">
+            <div id="points">0</div>
+            <div class="stats-display">Cookies per click: <span id="cpc" style="color: #00ff88; font-weight: bold;">1</span></div>
+            <div class="stats-display">Cookies per second: <span id="cps" style="color: #00ff88; font-weight: bold;">0</span></div>
+        </div>
+
+        <div id="cookie" tabindex="0">♡ 𓀐𓂺 🤰👩‍🍼</div>
+        <div style="color: #777; margin-bottom: 10px;">Tap or Hold ENTER</div>
+
+        <div id="minigame-hub">
+            <div style="text-align: center; margin-bottom: 5px;">
+                <strong style="color: var(--accent);">Mini-Games</strong><br>
+                <span style="font-size: 0.8rem; color: #888;">Earn bonus points!</span>
+            </div>
+            <button class="minigame-btn" id="btn-rain" onclick="startCookieRain()">Sex Rain</button>
+            <button class="minigame-btn" id="btn-math" onclick="startMathGame()">Pussy Math</button>
+        </div>
+    </div>
+
+    <div id="shop-area">
+        <h2>Upgrades</h2>
+        <div id="upgrades-container"></div>
+    </div>
+
+    <div id="modal-overlay">
+        
+        <div id="modal-rain" class="modal-content" style="display: none;">
+            <h2>Sex Frenzy!</h2>
+            <p>Tap as many falling Sex as you can in 10 seconds!</p>
+            <h3 style="color: #00ff88;">Caught: <span id="rain-score">0</span> | Time: <span id="rain-time">10</span>s</h3>
+            <div id="rain-area"></div>
+            <p id="rain-result" style="color: var(--accent); font-weight: bold;"></p>
+            <button id="btn-start-rain" class="minigame-btn" style="margin-bottom: 10px;" onclick="runCookieRainLogic()">Start Frenzy</button>
+            <button class="close-btn" onclick="closeModal()">Close</button>
+        </div>
+
+        <div id="modal-math" class="modal-content" style="display: none;">
+            <h2>Pussy Math</h2>
+            <p>Solve this correctly on the first try for a huge multiplier!</p>
+            <h1 id="math-problem" style="font-size: 3rem; margin: 10px 0;">? + ?</h1>
+            <input type="number" id="math-input" placeholder="Answer" onkeydown="if(event.key==='Enter') submitMath()">
+            <br>
+            <button class="minigame-btn" style="margin-bottom: 10px;" onclick="submitMath()">Submit Answer</button>
+            <p id="math-result" style="font-weight: bold; margin-top: 15px; margin-bottom: 15px;"></p>
+            <button class="close-btn" onclick="closeModal()">Close</button>
+        </div>
+
+    </div>
+
+    <script>
+        // --- Core Variables ---
+        let cookiePoints = 0;
+        let cookiesPerClick = 1;
+        let cookiesPerSecond = 0;
+
+        // --- Upgrades Data ---
+        const upgrades = [
+            { id: 'u1', name: "ultra Small penis", baseCost: 50, cpc: 1, cps: 0, count: 0 },
+            { id: 'u2', name: "Small penis", baseCost: 200, cpc: 3, cps: 2, count: 0 },
+            { id: 'u3', name: "Normal penis", baseCost: 750, cpc: 10, cps: 15, count: 0 },
+            { id: 'u4', name: "Giant penis", baseCost: 2000, cpc: 25, cps: 40, count: 0 },
+            { id: 'u5', name: "Small pussy", baseCost: 10000, cpc: 100, cps: 200, count: 0 },
+            { id: 'u6', name: "Normal Pussy", baseCost: 50000, cpc: 500, cps: 1000, count: 0 },
+            { id: 'u7', name: "Big Pussy", baseCost: 250000, cpc: 2500, cps: 5000, count: 0 },
+            { id: 'u8', name: "Jiggly Pussy", baseCost: 1000000, cpc: 15000, cps: 30000, count: 0 }
+        ];
+
+        // --- DOM Elements ---
+        const pointsEl = document.getElementById('points');
+        const cpcEl = document.getElementById('cpc');
+        const cpsEl = document.getElementById('cps');
+        const cookieEl = document.getElementById('cookie');
+        const shopContainer = document.getElementById('upgrades-container');
+        const modalOverlay = document.getElementById('modal-overlay');
+
+        // --- Core Functions ---
+        function getCost(upgrade) {
+            return Math.floor(upgrade.baseCost * Math.pow(1.15, upgrade.count));
+        }
+
+        function updateDisplay() {
+            pointsEl.innerText = Math.floor(cookiePoints).toLocaleString();
+            cpcEl.innerText = cookiesPerClick.toLocaleString();
+            cpsEl.innerText = cookiesPerSecond.toLocaleString();
+            updateShopButtons();
+        }
+
+        // Support for mobile touch points
+        function handleTap(e) {
+            e.preventDefault(); // Prevents double firing from mouse/touch
+            clickCookie();
+            
+            // Visual feedback
+            cookieEl.classList.add('active');
+            setTimeout(() => cookieEl.classList.remove('active'), 50);
+        }
+
+        function clickCookie() {
+            cookiePoints += cookiesPerClick;
+            updateDisplay();
+        }
+
+        // --- Passive Income Loop ---
+        setInterval(() => {
+            if (cookiesPerSecond > 0) {
+                cookiePoints += cookiesPerSecond / 10;
+                updateDisplay();
+            }
+        }, 100);
+
+        // --- Shop Generation ---
+        function initShop() {
+            shopContainer.innerHTML = '';
+            upgrades.forEach((u, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'upgrade-btn disabled';
+                btn.id = `btn-${u.id}`;
+                btn.onclick = () => buyUpgrade(index);
+                
+                let desc = `+${u.cpc} Click`;
+                if(u.cps > 0) desc += ` | +${u.cps} Auto`;
+
+                btn.innerHTML = `
+                    <div class="upgrade-info">
+                        <div class="upgrade-name">${u.name}</div>
+                        <div class="upgrade-desc">${desc}</div>
+                        <div class="upgrade-cost" id="cost-${u.id}">Cost: ${getCost(u).toLocaleString()}</div>
+                    </div>
+                    <div class="upgrade-count" id="count-${u.id}">${u.count}</div>
+                `;
+                shopContainer.appendChild(btn);
+            });
+        }
+
+        function buyUpgrade(index) {
+            const u = upgrades[index];
+            const cost = getCost(u);
+            if (cookiePoints >= cost) {
+                cookiePoints -= cost;
+                u.count++;
+                cookiesPerClick += u.cpc;
+                cookiesPerSecond += u.cps;
+                
+                document.getElementById(`cost-${u.id}`).innerText = `Cost: ${getCost(u).toLocaleString()}`;
+                document.getElementById(`count-${u.id}`).innerText = u.count;
+                updateDisplay();
+            }
+        }
+
+        function updateShopButtons() {
+            upgrades.forEach(u => {
+                const btn = document.getElementById(`btn-${u.id}`);
+                if (cookiePoints >= getCost(u)) {
+                    btn.classList.remove('disabled');
+                } else {
+                    btn.classList.add('disabled');
+                }
+            });
+        }
+
+        // --- Input Support ---
+        cookieEl.addEventListener('touchstart', handleTap, {passive: false});
+        cookieEl.addEventListener('mousedown', (e) => {
+            if (e.pointerType !== "touch") handleTap(e);
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                clickCookie();
+                cookieEl.classList.add('active');
+            }
+        });
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') {
+                cookieEl.classList.remove('active');
+            }
+        });
+
+        // ==========================================
+        //         MINI-GAME 1: COOKIE RAIN
+        // ==========================================
+        let rainInterval, rainTimer;
+        let rainScore = 0;
+        let isRainPlaying = false;
+
+        function startCookieRain() {
+            document.getElementById('modal-rain').style.display = 'block';
+            document.getElementById('modal-math').style.display = 'none';
+            modalOverlay.style.display = 'flex';
+            document.getElementById('rain-result').innerText = "";
+            document.getElementById('btn-start-rain').style.display = "inline-block";
+            document.getElementById('rain-area').innerHTML = "";
+            document.getElementById('rain-score').innerText = "0";
+            document.getElementById('rain-time').innerText = "10";
+        }
+
+        function runCookieRainLogic() {
+            if(isRainPlaying) return;
+            isRainPlaying = true;
+            rainScore = 0;
+            let timeLeft = 10;
+            document.getElementById('btn-start-rain').style.display = "none";
+            document.getElementById('rain-result').innerText = "";
+            document.getElementById('rain-score').innerText = "0";
+
+            rainInterval = setInterval(() => {
+                const drop = document.createElement('div');
+                drop.className = 'falling-cookie';
+                drop.innerText = '（ ͜.人 ͜.）';
+                
+                // Keep cookies within bounds
+                const rainAreaWidth = document.getElementById('rain-area').clientWidth;
+                const maxLeft = rainAreaWidth - 40; // 40 is cookie width roughly
+                drop.style.left = (Math.random() * maxLeft) + 'px';
+                
+                drop.style.animationDuration = (Math.random() * 1 + 1.5) + 's'; 
+                
+                const catchCookie = (e) => {
+                    e.preventDefault();
+                    rainScore++;
+                    document.getElementById('rain-score').innerText = rainScore;
+                    drop.remove();
+                };
+
+                drop.addEventListener('touchstart', catchCookie, {passive: false});
+                drop.addEventListener('mousedown', catchCookie);
+
+                document.getElementById('rain-area').appendChild(drop);
+
+                setTimeout(() => { if(drop.parentElement) drop.remove(); }, 3000);
+            }, 300);
+
+            rainTimer = setInterval(() => {
+                timeLeft--;
+                document.getElementById('rain-time').innerText = timeLeft;
+                if (timeLeft <= 0) {
+                    endCookieRain();
+                }
+            }, 1000);
+        }
+
+        function endCookieRain() {
+            clearInterval(rainInterval);
+            clearInterval(rainTimer);
+            isRainPlaying = false;
+            document.getElementById('rain-area').innerHTML = "";
+            
+            let reward = rainScore * (100 + (cookiesPerClick * 5));
+            cookiePoints += reward;
+            updateDisplay();
+
+            document.getElementById('rain-result').innerText = `Time's up! You caught ${rainScore} cookies and earned ${reward.toLocaleString()} Points!`;
+            
+            const btn = document.getElementById('btn-rain');
+            btn.disabled = true;
+            let cd = 30;
+            btn.innerText = `Cooldown (${cd}s)`;
+            let cdInterval = setInterval(() => {
+                cd--;
+                btn.innerText = `Cooldown (${cd}s)`;
+                if(cd <= 0) {
+                    clearInterval(cdInterval);
+                    btn.disabled = false;
+                    btn.innerText = "Cookie Rain";
+                }
+            }, 1000);
+        }
+
+        // ==========================================
+        //         MINI-GAME 2: SIGMA MATH
+        // ==========================================
+        let correctAnswer = 0;
+
+        function startMathGame() {
+            document.getElementById('modal-math').style.display = 'block';
+            document.getElementById('modal-rain').style.display = 'none';
+            modalOverlay.style.display = 'flex';
+            
+            document.getElementById('math-input').value = "";
+            document.getElementById('math-input').disabled = false;
+            document.getElementById('math-result').innerText = "";
+            document.getElementById('math-result').style.color = "";
+
+            let difficulty = Math.max(10, Math.floor(cookiesPerClick / 5));
+            let num1 = Math.floor(Math.random() * difficulty) + 1;
+            let num2 = Math.floor(Math.random() * difficulty) + 1;
+            
+            if (Math.random() > 0.5) {
+                correctAnswer = num1 + num2;
+                document.getElementById('math-problem').innerText = `${num1} + ${num2}`;
+            } else {
+                correctAnswer = num1 * num2;
+                document.getElementById('math-problem').innerText = `${num1} × ${num2}`;
+            }
+            
+            setTimeout(() => document.getElementById('math-input').focus(), 100);
+        }
+
+        function submitMath() {
+            if (document.getElementById('math-input').disabled) return; 
+            
+            const guess = parseInt(document.getElementById('math-input').value);
+            const resultEl = document.getElementById('math-result');
+            document.getElementById('math-input').disabled = true;
+
+            if (guess === correctAnswer) {
+                let reward = Math.max(500, cookiesPerClick * 500);
+                cookiePoints += reward;
+                resultEl.innerText = `TRUE SEX! You gained ${reward.toLocaleString()} points!`;
+                resultEl.style.color = "#00ff88";
+                updateDisplay();
+            } else {
+                resultEl.innerText = `L Penis. The answer was ${correctAnswer}. No points for you.`;
+                resultEl.style.color = "#ff4444";
+            }
+
+            const btn = document.getElementById('btn-math');
+            btn.disabled = true;
+            let cd = 45;
+            btn.innerText = `Cooldown (${cd}s)`;
+            let cdInterval = setInterval(() => {
+                cd--;
+                btn.innerText = `Cooldown (${cd}s)`;
+                if(cd <= 0) {
+                    clearInterval(cdInterval);
+                    btn.disabled = false;
+                    btn.innerText = "Pussy Math";
+                }
+            }, 1000);
+        }
+
+        // --- General Modal Functions ---
+        function closeModal() {
+            if(isRainPlaying) {
+                endCookieRain(); 
+            }
+            modalOverlay.style.display = 'none';
+        }
+
+        // Initialize Game
+        initShop();
+        updateDisplay();
+
+    </script>
+</body>
+</html>
+
+```
